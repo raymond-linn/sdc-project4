@@ -87,15 +87,15 @@ def pipeline(image):
 	img = p4Util.combined_threshold(img)
 	# 3) perspective transform and warp image
 	src = np.float32(
-			[[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-			[((img_size[0] / 6) - 10), img_size[1]],
-			[(img_size[0] * 5 / 6) + 60, img_size[1]],
-			[(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-	dst = np.float32(
-			[[(img_size[0] / 4), 0],
-			[(img_size[0] / 4), img_size[1]],
-			[(img_size[0] * 3 / 4), img_size[1]],
-			[(img_size[0] * 3 / 4), 0]])
+            [[(img_size[0] / 2) - 60, img_size[1] / 2 + 100],
+            [((img_size[0] / 6)  + 47), img_size[1] - 40 ],
+            [(img_size[0] * 5 / 6) - 26, img_size[1] - 40],
+            [(img_size[0] / 2 + 60), img_size[1] / 2 + 100]])
+    dst = np.float32(
+            [[(img_size[0] / 4) - 60, 0],
+            [(img_size[0] / 4) - 60, img_size[1]],
+            [(img_size[0] * 3 / 4) + 80, img_size[1]],
+            [(img_size[0] * 3 / 4) + 80, 0]])
 	warped, M = p4Util.warp_image(img, src, dst)
 	# to get inverse perspective transform to use to drawback on original image
 	unwarped, Minv = p4Util.unwarp_image(img, dst, src)
@@ -103,6 +103,23 @@ def pipeline(image):
 	left_fit, right_fit = p4Util.fit_polynomial(warped)    
 	# 5) draw left and right with polygon on the original image
 	new_img = p4Util.draw_polygon(image, left_fit, right_fit, Minv)
+
+	# 6) calculate curvature radius and vehcile position then draw on the image
+    left_curve, right_curve, vp_from_center = p4Util.calulate_curvature(new_img, left_fit, right_fit)
+    
+    # 7) draw the text on the image for left and right curve in meter
+    cv2.putText(new_img, "Left curve: {}m".format(left_curve.round()) + " and " + "Right curve: {}m".format(right_curve.round()), 
+                (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color=(255, 255, 255), thickness=2)
+    
+    # 8) prepare the vp text and draw on the image
+    if vp_from_center > 0:
+        vp_text = '{:.2f}m right from the center'.format(vp_from_center)
+    else:
+        vp_text = '{:.2f}m left from the center'.format(vp_from_center)
+        
+    cv2.putText(new_img, "VP is {}".format(vp_text), (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, color=(255, 255, 255),
+                thickness=2)
+
 
 	# return the new image 
 	return new_img

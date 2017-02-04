@@ -361,5 +361,45 @@ def draw_polygon(img, left_fit, right_fit, Minv):
 
     return new_img
 
+# Calculating curvature of the lane line
+def calulate_curvature(image, left_fit, right_fit):
+    # calculating curvature radius in pixel and meter
+    ploty = np.linspace(0, 719, num=720)
+    left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+    right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+    # Define y-value where we want radius of curvature
+    # I'll choose the maximum y-value, corresponding to the bottom of the image
+    y_eval = np.max(ploty)
+    # print(y_eval)
+    left_curverad = ((1 + (2*left_fit[0]*y_eval + left_fit[1])**2)**1.5) / np.absolute(2*left_fit[0])
+    right_curverad = ((1 + (2*right_fit[0]*y_eval + right_fit[1])**2)**1.5) / np.absolute(2*right_fit[0])
+    # print(left_curverad, right_curverad)
 
+    # Define conversions in x and y from pixels space to meters
+    ym_per_pix = 30/720 # meters per pixel in y dimension
+    xm_per_pix = 3.7/700 # meters per pixel in x dimension
 
+    # Fit new polynomials to x,y in world space
+    # print((ploty*ym_per_pix).shape)
+    # print (left_fit)
+    left_fit_cr = np.polyfit(ploty*ym_per_pix, left_fitx*xm_per_pix, 2)
+    right_fit_cr = np.polyfit(ploty*ym_per_pix, right_fitx*xm_per_pix, 2)
+    # Calculate the new radii of curvature
+    left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
+    right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
+    # Now our radius of curvature is in meters
+    # print(left_curverad, 'm', right_curverad, 'm')
+
+    # calculating the vehicle position w.r.t the lane lines
+    center_pixel = image.shape[1]/2
+    # assuming camera is mounted at the center of the vehicle
+    vp_center = int((left_fitx[0]+right_fitx[0])/2)
+    # print(vp_center)
+    from_center = center_pixel - vp_center
+    # print(from_center)
+    vp_center_in_meter = xm_per_pix * from_center
+    # print(vp_center_in_meter,'m')
+
+    return left_curverad, right_curverad, vp_center_in_meter
+
+    
